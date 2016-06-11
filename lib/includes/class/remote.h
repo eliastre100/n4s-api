@@ -5,15 +5,12 @@
 #include "types.h"
 
 struct remote {
-  /* User usefull attributs */
   char name[NAME_LENGTH];
   uint32_t speed;
   uint32_t wheels;
-
-  /* Lib attributes */
   io_t io;
+  command_t *command;
 
-  /* Methods */
   void (*destruct)(remote_t *self);
   bool (*connect)(remote_t *self, const char *host,uint16_t port);
 };

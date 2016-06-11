@@ -9,6 +9,7 @@ typedef struct command command_t;
 typedef struct car car_t;
 typedef struct listener listener_t;
 typedef struct remote remote_t;
+typedef struct command command_t;
 
 typedef struct {
   uint32_t x;
@@ -30,5 +31,11 @@ typedef struct {
   int out;
   bool same;
 } io_t;
+
+typedef enum {
+  START,
+  FORWARD,
+  NONE
+} command_e;
 
 #endif /* !N4S_API_TYPES_H_ */

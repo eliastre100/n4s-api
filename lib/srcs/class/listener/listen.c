@@ -1,37 +1,51 @@
-#include <malloc.h>
-#include <sys/socket.h>
-#include <tgmath.h>
+#include <types.h>
 #include <netinet/in.h>
-#include <errno.h>
-#include <arpa/inet.h>
-#include <stdlib.h>
+#include <stdio.h>
+#include <class/command.h>
 #include "class/listener.h"
-#include "class/car.h"
+#include "config.h"
 
-car_t **net_listener_listen(listener_t *self, unsigned int acceptable)
+static void *listener_net_loop(void *data)
 {
-  car_t **accepted;
-  unsigned int accepted_count = 0;
-  int sock;
-  struct sockaddr_in csin = { 0 };
-  int sinsize = sizeof(csin);
+  listener_t *self = data;
+  fd_set rdfs;
+  int sock_max = 0;
+  struct timeval timeout = {0, 0};
 
-  printf("Waiting for %d client to connect\n", acceptable);
-  if(listen(self->socket, acceptable) == -1) {
-    perror("listener");
-    return (NULL);
-  }
-  if ((accepted = malloc(sizeof(car_t *) * (acceptable + 1))) == NULL)
-    return (NULL);
-  while (accepted_count < acceptable) {
-    sock = accept(self->socket, (struct sockaddr *)&csin, (socklen_t *)&sinsize);
-    if(sock == -1)
-      perror("listener");
-    else {
-      accepted[accepted_count] = new_net_car(sock);
-      printf("accepted client from %s [%s]\n", inet_ntoa(csin.sin_addr), accepted[accepted_count++]->name);
+  while (1) {
+    timeout.tv_usec = 10000;
+    FD_ZERO(&rdfs);
+    for (unsigned int i = 0; self->cars[i] != NULL; i++) {
+      if (IN_IO(&self->cars[i]->io) >= 0) {
+	FD_SET(IN_IO(&self->cars[i]->io), &rdfs);
+	if (IN_IO(&self->cars[i]->io) > sock_max)
+	  sock_max = IN_IO(&self->cars[i]->io);
+      }
     }
+    if(select(sock_max + 1, &rdfs, NULL, NULL, &timeout) == -1) {
+      perror("listener");
+      return (NULL);
+    }
+    for (unsigned int i = 0; self->cars[i] != NULL; i++) {
+      if (FD_ISSET(IN_IO(&self->cars[i]->io), &rdfs))
+	self->cars[i]->listen(self->cars[i]);
+    }
+    if (!self->listening)
+      return (NULL);
   }
-  accepted[accepted_count] = NULL;
-  return (accepted);
+}
+
+bool net_listener_listen(listener_t *self, bool listen)
+{
+  if (!self->listening && listen) {
+    if (pthread_create(&self->thread, NULL, listener_net_loop, self) != -1)
+      self->listening = true;
+    else
+      return (false);
+  }
+  else if (self->listening && !listen){
+    self->listening = false;
+    pthread_join(self->thread, NULL);
+  }
+  return (true);
 }

@@ -1,26 +1,21 @@
 #include <stdio.h>
-#include <command.h>
 #include <unistd.h>
 #include <malloc.h>
 #include <netinet/in.h>
+#include <class/command.h>
 #include "class/listener.h"
 
 int main()
 {
   listener_t *listener;
-  car_t **cars;
-  unsigned int index = 0;
 
   listener = new_net_listener(4242);
   if (listener != NULL) {
-    cars = listener->listen(listener, 1);
-    while (cars[index] != NULL) {
-      printf("%s is connected\n", cars[index]->name);
-      cars[index]->destruct(cars[index]);
-      index++;
-    }
-    free(cars);
+    listener->connect(listener, 1);
+    listener->listen(listener, true);
+    sleep(10);
     listener->destruct(listener);
   }
+  sleep(1);
   return (0);
 }

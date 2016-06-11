@@ -1,11 +1,11 @@
-#include "command.h"
+#include "class/command.h"
 
 bool command_set_value(command_t *self, float value)
 {
-  if (value < MIN_VALUE || value > MAX_VALUE)
+  if (value < -1 || value > 1)
     return (false);
   else {
-    self->value = value;
+    self->data.value = value;
     return (true);
   }
 }

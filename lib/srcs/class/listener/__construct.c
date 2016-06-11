@@ -2,9 +2,12 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include "class/listener.h"
+#include "class/command.h"
 
 static void net_listener_methods(listener_t *self)
 {
+  self->connect = net_listener_connect;
+  self->disconnect = net_listener_disconnect;
   self->listen = net_listener_listen;
   self->destruct = net_listener_destruct;
 }
@@ -31,9 +34,9 @@ listener_t *new_net_listener(uint16_t port)
   if ((self = malloc(sizeof(listener_t))) == NULL)
     return (NULL);
   net_listener_methods(self);
-  if ((self->socket = net_init(port)) == -1) {
-    self->destruct(self);
-    return (NULL);
-  }
+  if ((self->socket = net_init(port)) == -1) { self->destruct(self); return (NULL); }
+  self->thread = 0;
+  self->listening = false;
+  self->cars = NULL;
   return (self);
 }
